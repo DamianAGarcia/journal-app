@@ -1,7 +1,8 @@
 import click
 from datetime import date
 
-from .db import get_connection, init_db
+from .db import get_entries, init_db, insert_entry
+from .models import Entry
 
 
 @click.group()
@@ -13,8 +14,6 @@ def cli():
 @cli.command()
 def add():
     """Add today's journal entry."""
-    entry_date = date.today().isoformat()
-
     click.echo("\n-- Relationships --")
     rel_note = click.prompt("Note")
     rel_rating = click.prompt("Rating (1-5)", type=click.IntRange(1, 5))
@@ -32,39 +31,39 @@ def add():
     sleep_hours = click.prompt("Hours slept", type=float)
     exercised = click.confirm("Did you exercise?")
 
-    conn = get_connection()
-    conn.execute("""
-        INSERT OR REPLACE INTO entries VALUES (?,?,?,?,?,?,?,?,?,?)
-    """, (
-        entry_date, rel_note, rel_rating, learn_note, learn_minutes,
-        money_note, money_spent, health_note, sleep_hours, int(exercised)
-    ))
-    conn.commit()
-    conn.close()
+    entry = Entry(
+        entry_date=date.today(),
+        relationships_note=rel_note,
+        relationships_rating=rel_rating,
+        learning_note=learn_note,
+        learning_minutes=learn_minutes,
+        money_note=money_note,
+        money_spent=money_spent,
+        health_note=health_note,
+        sleep_hours=sleep_hours,
+        exercised=exercised,
+    )
+    insert_entry(entry)
 
-    click.echo(f"\n✓ Entry saved for {entry_date}")
+    click.echo(f"\n✓ Entry saved for {entry.entry_date.isoformat()}")
 
 
 @cli.command(name="list")
 @click.option("--limit", default=7, help="Number of entries to show")
 def list_entries(limit):
     """Show recent entries."""
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM entries ORDER BY entry_date DESC LIMIT ?", (limit,)
-    ).fetchall()
-    conn.close()
+    entries = get_entries(limit)
 
-    if not rows:
+    if not entries:
         click.echo("No entries yet. Run 'journal add' to create one.")
         return
 
-    for row in rows:
-        click.echo(f"\n{row[0]}")
-        click.echo(f"  Relationships: {row[1]} (rated {row[2]}/5)")
-        click.echo(f"  Learning: {row[3]} ({row[4]} min)")
-        click.echo(f"  Money: {row[5]} (${row[6]:.2f})")
-        click.echo(f"  Health: {row[7]} (slept {row[8]}h, exercised: {bool(row[9])})")
+    for entry in entries:
+        click.echo(f"\n{entry.entry_date.isoformat()}")
+        click.echo(f"  Relationships: {entry.relationships_note} (rated {entry.relationships_rating}/5)")
+        click.echo(f"  Learning: {entry.learning_note} ({entry.learning_minutes} min)")
+        click.echo(f"  Money: {entry.money_note} (${entry.money_spent:.2f})")
+        click.echo(f"  Health: {entry.health_note} (slept {entry.sleep_hours}h, exercised: {entry.exercised})")
 
 
 if __name__ == "__main__":
