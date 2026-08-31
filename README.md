@@ -12,6 +12,13 @@ venv\Scripts\activate         # Windows
 pip install -r requirements.txt
 ```
 
+## Dependencies
+
+- **Python 3.6+** (tested with Python 3.9.6)
+- **Click 8.1+** - A Python library for creating beautiful command-line interfaces (CLI)
+
+All dependencies are listed in `requirements.txt` and will be installed automatically with `pip install -r requirements.txt`.
+
 ## Usage
 
 Add today's entry:
